@@ -1,0 +1,67 @@
+import java.io.*;
+import java.util.*;
+
+class MissileAttack {
+    String timeStart, timeEnd, model, launchPlace, target;
+    int launched, destroyed;
+    
+    public MissileAttack(String timeStart, String timeEnd, String model, String launchPlace, String target, int launched, int destroyed) {
+        this.timeStart = timeStart;
+        this.timeEnd = timeEnd;
+        this.model = model;
+        this.launchPlace = launchPlace;
+        this.target = target;
+        this.launched = launched;
+        this.destroyed = destroyed;
+    }
+}
+
+class SwarmDroneDefense {
+    List<MissileAttack> attacks = new ArrayList<>();
+    
+    public void loadMissileData(String filePath) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            br.readLine(); // Skip header
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length < 8) continue;
+                try {
+                    String timeStart = data[0];
+                    String timeEnd = data[1];
+                    String model = data[2];
+                    String launchPlace = data[3];
+                    String target = data[4];
+                    int launched = Integer.parseInt(data[6].isEmpty() ? "0" : data[6]);
+                    int destroyed = Integer.parseInt(data[7].isEmpty() ? "0" : data[7]);
+                    
+                    attacks.add(new MissileAttack(timeStart, timeEnd, model, launchPlace, target, launched, destroyed));
+                } catch (NumberFormatException e) {
+                    System.out.println("Skipping invalid data: " + line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void simulateDefense() {
+        int totalLaunched = 0, totalDestroyed = 0;
+        for (MissileAttack attack : attacks) {
+            totalLaunched += attack.launched;
+            totalDestroyed += attack.destroyed;
+            System.out.println("Intercepting " + attack.launched + " missiles from " + attack.launchPlace + " targeting " + attack.target);
+            System.out.println("Successfully neutralized " + attack.destroyed + " threats.");
+        }
+        System.out.println("Total Missiles Launched: " + totalLaunched);
+        System.out.println("Total Missiles Neutralized: " + totalDestroyed);
+    }
+}
+
+public class DroneSwarmSystem {
+    public static void main(String[] args) {
+        SwarmDroneDefense defense = new SwarmDroneDefense();
+        defense.loadMissileData("missile_attacks_daily.csv");
+        defense.simulateDefense();
+    }
+}
