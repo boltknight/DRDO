@@ -64,4 +64,145 @@ public class DroneSwarmSystem {
         defense.loadMissileData("missile_attacks_daily.csv");
         defense.simulateDefense();
     }
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Random;
+
+class Drone {
+    int x, y;
+    int speed = 2;
+
+    public Drone(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void moveRandomly() {
+        Random rand = new Random();
+        x += rand.nextInt(5) - 2;
+        y += rand.nextInt(5) - 2;
+    }
+}
+
+public class SwarmSimulation extends JPanel {
+    ArrayList<Drone> drones = new ArrayList<>();
+    String formation = "flock"; // Available: flock, grid, circle, line
+    int width = 800, height = 600;
+    
+    public SwarmSimulation(int numDrones) {
+        for (int i = 0; i < numDrones; i++) {
+            drones.add(new Drone(new Random().nextInt(width), new Random().nextInt(height)));
+        }
+        new Timer(50, e -> repaint()).start();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, width, height);
+        g.setColor(Color.CYAN);
+        
+        switch (formation) {
+            case "flock": moveFlock(); break;
+            case "grid": moveGrid(); break;
+            case "circle": moveCircle(); break;
+            case "line": moveLine(); break;
+        }
+        
+        for (Drone d : drones) {
+            g.fillOval(d.x, d.y, 5, 5);
+        }
+    }
+
+    private void moveFlock() {
+        for (Drone d : drones) {
+            d.moveRandomly();
+        }
+    }
+    
+    private void moveGrid() {
+        int cols = (int) Math.sqrt(drones.size());
+        int spacing = 50;
+        int startX = 100, startY = 100;
+        int index = 0;
+        for (int i = 0; i < cols; i++) {
+            for (int j = 0; j < cols && index < drones.size(); j++) {
+                drones.get(index).x = startX + j * spacing;
+                drones.get(index).y = startY + i * spacing;
+                index++;
+            }
+        }
+    }
+    
+    private void moveCircle() {
+        int centerX = width / 2, centerY = height / 2;
+        int radius = 150;
+        for (int i = 0; i < drones.size(); i++) {
+            double angle = 2 * Math.PI * i / drones.size();
+            drones.get(i).x = (int) (centerX + radius * Math.cos(angle));
+            drones.get(i).y = (int) (centerY + radius * Math.sin(angle));
+        }
+    }
+    
+    private void moveLine() {
+        int startX = 100, startY = height / 2;
+        int spacing = 20;
+        for (int i = 0; i < drones.size(); i++) {
+            drones.get(i).x = startX + i * spacing;
+            drones.get(i).y = startY;
+        }
+    }
+    
+    public void setFormation(String formation) {
+        this.formation = formation;
+        repaint();
+    }
+
+    public static void main(String[] args) {
+        JFrame frame = new JFrame("Swarm Drone Simulation");
+        SwarmSimulation swarm = new SwarmSimulation(25);
+        frame.add(swarm);
+        frame.setSize(800, 600);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        // Example: Change formation dynamically
+        new Timer(3000, e -> {
+            String[] formations = {"flock", "grid", "circle", "line"};
+            swarm.setFormation(formations[new Random().nextInt(formations.length)]);
+        }).start();
+    }
+}
+import java.util.Scanner;
+
+public class CumulativeKillProbability {
+    public static double calculateCKP(double[] probabilities) {
+        double product = 1.0;
+        for (double p : probabilities) {
+            product *= (1 - p);
+        }
+        return 1 - product;
+    }
+    
+    public static void main(String[] args) {
+// Method to calculate Cumulative Kill Probability
+        Scanner scanner = new Scanner(System.in);
+        
+        System.out.print("Enter the number of attempts: ");
+        int n = scanner.nextInt();
+        double[] probabilities = new double[n];
+        
+        System.out.println("Enter the kill probabilities for each attempt:");
+        for (int i = 0; i < n; i++) {
+            System.out.print("Attempt " + (i + 1) + " Probability: ");
+            probabilities[i] = scanner.nextDouble();
+        }
+        
+        double ckp = calculateCKP(probabilities);
+        System.out.printf("Cumulative Kill Probability: %.4f\n", ckp);
+        
+        scanner.close();
+    }
 }
