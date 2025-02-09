@@ -64,6 +64,7 @@ public class DroneSwarmSystem {
         defense.loadMissileData("missile_attacks_daily.csv");
         defense.simulateDefense();
     }
+}
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
