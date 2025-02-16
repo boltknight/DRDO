@@ -207,3 +207,141 @@ image visualization :
         <text x="35" y="70" font-size="10">Shed</text>
     </g>
 </svg>
+
+java code:
+import java.time.Instant;
+import java.util.*;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.geom.*;
+
+class VisualizationFrame extends JFrame {
+    private SwarmPanel swarmPanel;
+
+    public VisualizationFrame(DroneSwarm swarm, List<Structure> structures) {
+        setTitle("Drone Swarm Visualization");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        swarmPanel = new SwarmPanel(swarm, structures);
+        add(swarmPanel);
+    }
+}
+
+class SwarmPanel extends JPanel {
+    private DroneSwarm swarm;
+    private List<Structure> structures;
+    
+    public SwarmPanel(DroneSwarm swarm, List<Structure> structures) {
+        this.swarm = swarm;
+        this.structures = structures;
+        setBackground(Color.WHITE);
+    }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Draw structures
+        for (Structure structure : structures) {
+            drawStructure(g2d, structure);
+        }
+        
+        // Draw drones
+        for (Drone drone : swarm.getDrones()) {
+            drawDrone(g2d, drone);
+        }
+    }
+    
+    private void drawStructure(Graphics2D g2d, Structure structure) {
+        int x = (int) (structure.getLocation().getX() * getWidth());
+        int y = (int) (structure.getLocation().getY() * getHeight());
+        
+        switch (structure.getType()) {
+            case BUILDING:
+                g2d.setColor(Color.GRAY);
+                g2d.fillRect(x, y, 60, 60);
+                break;
+            case SHED:
+                g2d.setColor(Color.BROWN);
+                g2d.fillRect(x, y, 30, 30);
+                break;
+            case ROAD:
+                g2d.setColor(Color.BLACK);
+                g2d.fillRect(x, y, 100, 20);
+                break;
+        }
+    }
+    
+    private void drawDrone(Graphics2D g2d, Drone drone) {
+        int x = (int) (drone.getLocation().getX() * getWidth());
+        int y = (int) (drone.getLocation().getY() * getHeight());
+        
+        // Draw drone body
+        g2d.setColor(Color.BLUE);
+        g2d.fillOval(x-5, y-5, 10, 10);
+        
+        // Draw surveillance radius
+        g2d.setColor(new Color(0, 0, 255, 50));
+        int radius = (int) (drone.getSurveillanceProbability() * 50);
+        g2d.fillOval(x-radius, y-radius, radius*2, radius*2);
+    }
+}
+
+enum StructureType {
+    BUILDING, SHED, ROAD
+}
+
+class Structure {
+    private StructureType type;
+    private Point2D.Double location;
+    private double width;
+    private double height;
+
+    public Structure(StructureType type, Point2D.Double location, double width, double height) {
+        this.type = type;
+        this.location = location;
+        this.width = width;
+        this.height = height;
+    }
+
+    public StructureType getType() { return type; }
+    public Point2D.Double getLocation() { return location; }
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
+}
+
+// Update the main class
+public class SwarmDroneSystem {
+    public static void main(String[] args) {
+        // Initialize structures
+        List<Structure> structures = new ArrayList<>();
+        structures.add(new Structure(StructureType.BUILDING, 
+            new Point2D.Double(0.3, 0.3), 60, 60));
+        structures.add(new Structure(StructureType.SHED, 
+            new Point2D.Double(0.6, 0.4), 30, 30));
+        structures.add(new Structure(StructureType.ROAD, 
+            new Point2D.Double(0.2, 0.7), 100, 20));
+
+        // Initialize drone swarm
+        List<Transaction> transactions = new ArrayList<>();
+        transactions.add(new Transaction("1918856650", -1430, 
+            Instant.parse("2024-05-22T17:47:25Z"), 
+            Instant.parse("2024-05-22T18:00:12Z")));
+        transactions.add(new Transaction("1883934565", -1994,
+            Instant.parse("2024-05-08T09:00:22Z"),
+            Instant.parse("2024-05-08T09:15:13Z")));
+
+        DroneSwarm swarm = new DroneSwarm();
+        swarm.initializeFromTransactions(transactions);
+        swarm.executeSwarmOperation();
+
+        // Create and show visualization
+        SwingUtilities.invokeLater(() -> {
+            VisualizationFrame frame = new VisualizationFrame(swarm, structures);
+            frame.setVisible(true);
+        });
+    }
+}
