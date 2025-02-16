@@ -1,0 +1,209 @@
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.util.*;
+
+class DroneSwarm {
+    private List<Drone> drones;
+    private Map<String, Mission> missions;
+    
+    public DroneSwarm() {
+        this.drones = new ArrayList<>();
+        this.missions = new HashMap<>();
+    }
+
+    public void initializeFromTransactions(List<Transaction> transactions) {
+        for (Transaction tx : transactions) {
+            Drone drone = new Drone(
+                UUID.randomUUID().toString(),
+                generateRandomCoordinates(),
+                Math.abs(tx.getAmount()) // Using transaction amount for payload capacity
+            );
+            drones.add(drone);
+            
+            Mission mission = new Mission(
+                tx.getTransactionId(),
+                tx.getCreatedTime(),
+                tx.getLastUpdatedTime()
+            );
+            missions.put(tx.getTransactionId(), mission);
+        }
+    }
+
+    private Coordinates generateRandomCoordinates() {
+        // Generate random coordinates within reasonable bounds
+        double lat = 18.5204 + (Math.random() * 0.1); // Approximate coordinates
+        double lon = 73.8567 + (Math.random() * 0.1); // for demonstration
+        double alt = 100 + (Math.random() * 900); // Altitude between 100-1000m
+        return new Coordinates(lat, lon, alt);
+    }
+
+    public void executeSwarmOperation() {
+        for (Drone drone : drones) {
+            drone.updateStatus();
+            drone.calculateSurveillanceProbability();
+        }
+    }
+
+    public void printSwarmStatus() {
+        System.out.println("\nSwarm Status Report");
+        System.out.println("===================");
+        for (Drone drone : drones) {
+            System.out.println(drone.toString());
+        }
+    }
+}
+
+class Drone {
+    private String id;
+    private Coordinates location;
+    private double payloadCapacity;
+    private double currentPayload;
+    private double surveillanceProbability;
+    private DroneStatus status;
+
+    public Drone(String id, Coordinates location, double payloadCapacity) {
+        this.id = id;
+        this.location = location;
+        this.payloadCapacity = payloadCapacity;
+        this.currentPayload = payloadCapacity;
+        this.status = DroneStatus.ACTIVE;
+        this.surveillanceProbability = 0.0;
+    }
+
+    public void updateStatus() {
+        if (currentPayload < payloadCapacity * 0.1) {
+            status = DroneStatus.LOW_RESOURCES;
+        }
+    }
+
+    public void calculateSurveillanceProbability() {
+        // Calculate probability based on altitude and payload
+        double altitudeFactor = Math.min(1.0, location.getAltitude() / 1000.0);
+        double payloadFactor = currentPayload / payloadCapacity;
+        this.surveillanceProbability = (altitudeFactor + payloadFactor) / 2.0;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Drone %s: Location=%s, Payload=%.2f/%.2f, Probability=%.2f, Status=%s",
+            id, location, currentPayload, payloadCapacity, surveillanceProbability, status);
+    }
+}
+
+class Coordinates {
+    private double latitude;
+    private double longitude;
+    private double altitude;
+
+    public Coordinates(double latitude, double longitude, double altitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.altitude = altitude;
+    }
+
+    public double getAltitude() {
+        return altitude;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("(%.4f, %.4f, %.1fm)", latitude, longitude, altitude);
+    }
+}
+
+class Mission {
+    private String id;
+    private Instant startTime;
+    private Instant endTime;
+    private MissionStatus status;
+
+    public Mission(String id, Instant startTime, Instant endTime) {
+        this.id = id;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.status = MissionStatus.IN_PROGRESS;
+    }
+}
+
+class Transaction {
+    private String transactionId;
+    private double amount;
+    private Instant createdTime;
+    private Instant lastUpdatedTime;
+
+    public Transaction(String transactionId, double amount, Instant createdTime, Instant lastUpdatedTime) {
+        this.transactionId = transactionId;
+        this.amount = amount;
+        this.createdTime = createdTime;
+        this.lastUpdatedTime = lastUpdatedTime;
+    }
+
+    public String getTransactionId() { return transactionId; }
+    public double getAmount() { return amount; }
+    public Instant getCreatedTime() { return createdTime; }
+    public Instant getLastUpdatedTime() { return lastUpdatedTime; }
+}
+
+enum DroneStatus {
+    ACTIVE, LOW_RESOURCES, MAINTENANCE, OFFLINE
+}
+
+enum MissionStatus {
+    PLANNED, IN_PROGRESS, COMPLETED, ABORTED
+}
+
+public class SwarmDroneSystem {
+    public static void main(String[] args) {
+        // Sample usage
+        List<Transaction> transactions = new ArrayList<>();
+        // Add transactions from the CSV data
+        transactions.add(new Transaction("1918856650", -1430, 
+            Instant.parse("2024-05-22T17:47:25Z"), 
+            Instant.parse("2024-05-22T18:00:12Z")));
+        transactions.add(new Transaction("1883934565", -1994,
+            Instant.parse("2024-05-08T09:00:22Z"),
+            Instant.parse("2024-05-08T09:15:13Z")));
+        // Add more transactions...
+
+        DroneSwarm swarm = new DroneSwarm();
+        swarm.initializeFromTransactions(transactions);
+        swarm.executeSwarmOperation();
+        swarm.printSwarmStatus();
+    }
+}
+
+image visualization :
+
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="600" fill="#f0f0f0"/>
+    
+    <!-- Road -->
+    <rect x="160" y="420" width="400" height="40" fill="#333333"/>
+    
+    <!-- Building -->
+    <rect x="240" y="180" width="120" height="120" fill="#808080"/>
+    
+    <!-- Shed -->
+    <rect x="480" y="240" width="60" height="60" fill="#8B4513"/>
+    
+    <!-- Drones with surveillance radius -->
+    <g>
+        <circle cx="300" cy="200" r="50" fill="rgba(0,0,255,0.1)"/>
+        <circle cx="300" cy="200" r="5" fill="blue"/>
+    </g>
+    <g>
+        <circle cx="450" cy="300" r="40" fill="rgba(0,0,255,0.1)"/>
+        <circle cx="450" cy="300" r="5" fill="blue"/>
+    </g>
+    
+    <!-- Legend -->
+    <g transform="translate(20,20)">
+        <rect x="0" y="0" width="120" height="80" fill="white" stroke="#ccc"/>
+        <text x="10" y="20" font-size="12">Legend:</text>
+        <rect x="10" y="30" width="20" height="20" fill="#808080"/>
+        <text x="35" y="45" font-size="10">Building</text>
+        <rect x="10" y="55" width="20" height="20" fill="#8B4513"/>
+        <text x="35" y="70" font-size="10">Shed</text>
+    </g>
+</svg>
