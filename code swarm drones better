@@ -178,8 +178,21 @@ public class SwarmDroneSystem {
   <!-- Background -->
   <rect width="800" height="600" fill="#f0f0f0"/>
   
+  <!-- Water Body -->
+  <ellipse cx="400" cy="500" rx="200" ry="70" fill="#4682B4">
+    <!-- Water Animation -->
+    <animate attributeName="ry" values="70;65;70" dur="5s" repeatCount="indefinite" />
+  </ellipse>
+  <!-- Water Ripples -->
+  <path d="M350,485 Q380,475 420,485 Q460,495 480,485" stroke="#87CEEB" fill="none" stroke-width="2" />
+  <path d="M330,505 Q370,515 410,505 Q450,495 490,505" stroke="#87CEEB" fill="none" stroke-width="2" />
+  
   <!-- Road -->
   <rect x="160" y="420" width="400" height="40" fill="#333333"/>
+  <!-- Road Bridge Over Water -->
+  <rect x="350" y="420" width="100" height="40" fill="#555555" stroke="#222222" stroke-width="2"/>
+  <line x1="350" y1="430" x2="450" y2="430" stroke="#666666" stroke-width="2"/>
+  <line x1="350" y1="450" x2="450" y2="450" stroke="#666666" stroke-width="2"/>
   
   <!-- Trees (Added) -->
   <!-- Tree 1 -->
@@ -207,6 +220,12 @@ public class SwarmDroneSystem {
     <polygon points="-15,-20 15,-20 0,-50" fill="#006400"/>
   </g>
   
+  <!-- Tree 5 (Near water) -->
+  <g transform="translate(250,470)">
+    <rect x="-4" y="0" width="8" height="20" fill="#8B4513"/>
+    <circle cx="0" cy="-12" r="15" fill="#2E8B57"/>
+  </g>
+  
   <!-- Building -->
   <rect x="240" y="180" width="120" height="120" fill="#808080"/>
   
@@ -225,7 +244,7 @@ public class SwarmDroneSystem {
   
   <!-- Legend -->
   <g transform="translate(20,20)">
-    <rect x="0" y="0" width="120" height="120" fill="white" stroke="#ccc"/>
+    <rect x="0" y="0" width="120" height="150" fill="white" stroke="#ccc"/>
     <text x="10" y="20" font-size="12">Legend:</text>
     <rect x="10" y="30" width="20" height="20" fill="#808080"/>
     <text x="35" y="45" font-size="10">Building</text>
@@ -233,142 +252,201 @@ public class SwarmDroneSystem {
     <text x="35" y="70" font-size="10">Shed</text>
     <circle cx="20" cy="95" r="10" fill="#228B22"/>
     <text x="35" y="100" font-size="10">Trees</text>
+    <ellipse cx="20" cy="125" rx="15" ry="8" fill="#4682B4"/>
+    <text x="35" y="130" font-size="10">Water</text>
   </g>
 </svg>
 
 // java code:
-import java.time.Instant;
-import java.util.*;
-import java.awt.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.*;
 
-class VisualizationFrame extends JFrame {
-    private SwarmPanel swarmPanel;
-
-    public VisualizationFrame(DroneSwarm swarm, List<Structure> structures) {
-        setTitle("Drone Swarm Visualization");
-        setSize(800, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        swarmPanel = new SwarmPanel(swarm, structures);
-        add(swarmPanel);
-    }
-}
-
-class SwarmPanel extends JPanel {
-    private DroneSwarm swarm;
-    private List<Structure> structures;
+public class LandscapeVisualization extends JPanel {
     
-    public SwarmPanel(DroneSwarm swarm, List<Structure> structures) {
-        this.swarm = swarm;
-        this.structures = structures;
+    private float waterAnimationValue = 0.0f;
+    private final Timer animationTimer;
+    
+    public LandscapeVisualization() {
+        setPreferredSize(new Dimension(800, 600));
         setBackground(Color.WHITE);
+        
+        // Setup animation timer for water
+        animationTimer = new Timer(50, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                waterAnimationValue += 0.1f;
+                if (waterAnimationValue > 2 * Math.PI) {
+                    waterAnimationValue = 0;
+                }
+                repaint();
+            }
+        });
+        animationTimer.start();
     }
     
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
+        
+        // Enable anti-aliasing for smoother rendering
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Draw structures
-        for (Structure structure : structures) {
-            drawStructure(g2d, structure);
-        }
+        // Draw background
+        g2d.setColor(new Color(240, 240, 240));
+        g2d.fillRect(0, 0, getWidth(), getHeight());
         
-        // Draw drones
-        for (Drone drone : swarm.getDrones()) {
-            drawDrone(g2d, drone);
-        }
+        // Draw water body with animation
+        float animationOffset = (float) (Math.sin(waterAnimationValue) * 5.0);
+        g2d.setColor(new Color(70, 130, 180)); // Steel blue
+        Ellipse2D waterBody = new Ellipse2D.Double(200, 430, 400, 140 + animationOffset);
+        g2d.fill(waterBody);
+        
+        // Draw water ripples
+        g2d.setColor(new Color(135, 206, 235)); // Sky blue
+        g2d.setStroke(new BasicStroke(2));
+        
+        // Ripple 1
+        Path2D ripple1 = new Path2D.Double();
+        ripple1.moveTo(350, 485);
+        ripple1.quadTo(380, 475, 420, 485);
+        ripple1.quadTo(460, 495, 480, 485);
+        g2d.draw(ripple1);
+        
+        // Ripple 2
+        Path2D ripple2 = new Path2D.Double();
+        ripple2.moveTo(330, 505);
+        ripple2.quadTo(370, 515, 410, 505);
+        ripple2.quadTo(450, 495, 490, 505);
+        g2d.draw(ripple2);
+        
+        // Draw road
+        g2d.setColor(new Color(51, 51, 51));
+        g2d.fillRect(160, 420, 400, 40);
+        
+        // Draw bridge
+        g2d.setColor(new Color(85, 85, 85));
+        g2d.fillRect(350, 420, 100, 40);
+        g2d.setColor(new Color(34, 34, 34));
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawRect(350, 420, 100, 40);
+        
+        // Bridge details
+        g2d.setColor(new Color(102, 102, 102));
+        g2d.drawLine(350, 430, 450, 430);
+        g2d.drawLine(350, 450, 450, 450);
+        
+        // Draw trees
+        drawTree(g2d, 100, 350, 10, 30, 20);
+        drawTree(g2d, 150, 380, 10, 25, 15);
+        drawTree(g2d, 600, 320, 12, 35, 25);
+        drawPineTree(g2d, 680, 360, 8, 30);
+        drawTree(g2d, 250, 470, 8, 20, 15, new Color(46, 139, 87)); // Sea green tree near water
+        
+        // Draw building
+        g2d.setColor(new Color(128, 128, 128));
+        g2d.fillRect(240, 180, 120, 120);
+        
+        // Draw shed
+        g2d.setColor(new Color(139, 69, 19)); // Saddle brown
+        g2d.fillRect(480, 240, 60, 60);
+        
+        // Draw drones with surveillance radius
+        drawDroneWithRadius(g2d, 300, 200, 50);
+        drawDroneWithRadius(g2d, 450, 300, 40);
+        
+        // Draw legend
+        drawLegend(g2d);
     }
     
-    private void drawStructure(Graphics2D g2d, Structure structure) {
-        int x = (int) (structure.getLocation().getX() * getWidth());
-        int y = (int) (structure.getLocation().getY() * getHeight());
-        
-        switch (structure.getType()) {
-            case BUILDING:
-                g2d.setColor(Color.GRAY);
-                g2d.fillRect(x, y, 60, 60);
-                break;
-            case SHED:
-                g2d.setColor(Color.BROWN);
-                g2d.fillRect(x, y, 30, 30);
-                break;
-            case ROAD:
-                g2d.setColor(Color.BLACK);
-                g2d.fillRect(x, y, 100, 20);
-                break;
-        }
+    private void drawTree(Graphics2D g2d, int x, int y, int trunkWidth, int trunkHeight, int crownRadius) {
+        drawTree(g2d, x, y, trunkWidth, trunkHeight, crownRadius, new Color(34, 139, 34)); // Forest green
     }
     
-    private void drawDrone(Graphics2D g2d, Drone drone) {
-        int x = (int) (drone.getLocation().getX() * getWidth());
-        int y = (int) (drone.getLocation().getY() * getHeight());
+    private void drawTree(Graphics2D g2d, int x, int y, int trunkWidth, int trunkHeight, int crownRadius, Color crownColor) {
+        // Draw trunk
+        g2d.setColor(new Color(139, 69, 19)); // Saddle brown
+        g2d.fillRect(x - trunkWidth/2, y, trunkWidth, trunkHeight);
         
-        // Draw drone body
-        g2d.setColor(Color.BLUE);
-        g2d.fillOval(x-5, y-5, 10, 10);
+        // Draw crown
+        g2d.setColor(crownColor);
+        g2d.fillOval(x - crownRadius, y - trunkHeight/2 - crownRadius, crownRadius * 2, crownRadius * 2);
+    }
+    
+    private void drawPineTree(Graphics2D g2d, int x, int y, int trunkWidth, int trunkHeight) {
+        // Draw trunk
+        g2d.setColor(new Color(139, 69, 19)); // Saddle brown
+        g2d.fillRect(x - trunkWidth/2, y, trunkWidth, trunkHeight);
         
+        // Draw pine crown (triangles)
+        g2d.setColor(new Color(0, 100, 0)); // Dark green
+        
+        int[] xPoints1 = {x - 20, x + 20, x};
+        int[] yPoints1 = {y, y, y - 40};
+        g2d.fillPolygon(xPoints1, yPoints1, 3);
+        
+        int[] xPoints2 = {x - 15, x + 15, x};
+        int[] yPoints2 = {y - 20, y - 20, y - 50};
+        g2d.fillPolygon(xPoints2, yPoints2, 3);
+    }
+    
+    private void drawDroneWithRadius(Graphics2D g2d, int x, int y, int radius) {
         // Draw surveillance radius
-        g2d.setColor(new Color(0, 0, 255, 50));
-        int radius = (int) (drone.getSurveillanceProbability() * 50);
-        g2d.fillOval(x-radius, y-radius, radius*2, radius*2);
+        g2d.setColor(new Color(0, 0, 255, 25)); // Transparent blue
+        g2d.fillOval(x - radius, y - radius, radius * 2, radius * 2);
+        
+        // Draw drone
+        g2d.setColor(Color.BLUE);
+        g2d.fillOval(x - 5, y - 5, 10, 10);
     }
-}
-
-enum StructureType {
-    BUILDING, SHED, ROAD
-}
-
-class Structure {
-    private StructureType type;
-    private Point2D.Double location;
-    private double width;
-    private double height;
-
-    public Structure(StructureType type, Point2D.Double location, double width, double height) {
-        this.type = type;
-        this.location = location;
-        this.width = width;
-        this.height = height;
+    
+    private void drawLegend(Graphics2D g2d) {
+        // Legend background
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(20, 20, 120, 150);
+        g2d.setColor(Color.LIGHT_GRAY);
+        g2d.drawRect(20, 20, 120, 150);
+        
+        // Legend title
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2d.drawString("Legend:", 30, 40);
+        
+        // Building
+        g2d.setColor(new Color(128, 128, 128));
+        g2d.fillRect(30, 50, 20, 20);
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        g2d.drawString("Building", 55, 65);
+        
+        // Shed
+        g2d.setColor(new Color(139, 69, 19));
+        g2d.fillRect(30, 75, 20, 20);
+        g2d.setColor(Color.BLACK);
+        g2d.drawString("Shed", 55, 90);
+        
+        // Trees
+        g2d.setColor(new Color(34, 139, 34));
+        g2d.fillOval(30, 105, 20, 20);
+        g2d.setColor(Color.BLACK);
+        g2d.drawString("Trees", 55, 120);
+        
+        // Water
+        g2d.setColor(new Color(70, 130, 180));
+        g2d.fillOval(35, 135, 30, 16);
+        g2d.setColor(Color.BLACK);
+        g2d.drawString("Water", 55, 150);
     }
-
-    public StructureType getType() { return type; }
-    public Point2D.Double getLocation() { return location; }
-    public double getWidth() { return width; }
-    public double getHeight() { return height; }
-}
-
-// Update the main class
-public class SwarmDroneSystem {
+    
     public static void main(String[] args) {
-        // Initialize structures
-        List<Structure> structures = new ArrayList<>();
-        structures.add(new Structure(StructureType.BUILDING, 
-            new Point2D.Double(0.3, 0.3), 60, 60));
-        structures.add(new Structure(StructureType.SHED, 
-            new Point2D.Double(0.6, 0.4), 30, 30));
-        structures.add(new Structure(StructureType.ROAD, 
-            new Point2D.Double(0.2, 0.7), 100, 20));
-
-        // Initialize drone swarm
-        List<Transaction> transactions = new ArrayList<>();
-        transactions.add(new Transaction("1918856650", -1430, 
-            Instant.parse("2024-05-22T17:47:25Z"), 
-            Instant.parse("2024-05-22T18:00:12Z")));
-        transactions.add(new Transaction("1883934565", -1994,
-            Instant.parse("2024-05-08T09:00:22Z"),
-            Instant.parse("2024-05-08T09:15:13Z")));
-
-        DroneSwarm swarm = new DroneSwarm();
-        swarm.initializeFromTransactions(transactions);
-        swarm.executeSwarmOperation();
-
-        // Create and show visualization
         SwingUtilities.invokeLater(() -> {
-            VisualizationFrame frame = new VisualizationFrame(swarm, structures);
+            JFrame frame = new JFrame("Landscape Visualization");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.add(new LandscapeVisualization());
+            frame.pack();
+            frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
     }
