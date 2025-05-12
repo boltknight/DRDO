@@ -234,11 +234,11 @@ public class SwarmDroneSystem {
   
   <!-- Drones with surveillance radius -->
   <g>
-    <circle cx="300" cy="200" r="50" fill="rgba(0,0,255,0.1)"/>
+    <circle cx="300" cy="200" r="100" fill="rgba(0,0,255,0.1)"/>
     <circle cx="300" cy="200" r="5" fill="blue"/>
   </g>
   <g>
-    <circle cx="450" cy="300" r="40" fill="rgba(0,0,255,0.1)"/>
+    <circle cx="450" cy="300" r="80" fill="rgba(0,0,255,0.1)"/>
     <circle cx="450" cy="300" r="5" fill="blue"/>
   </g>
   
