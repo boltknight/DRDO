@@ -1,0 +1,311 @@
+// src/main/java/com/example/swarm/model/Coordinates.java
+package com.example.swarm.model;
+
+public class Coordinates {
+    private double x;
+    private double y;
+
+    public Coordinates() {}
+
+    public Coordinates(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public double getX() { return x; }
+    public double getY() { return y; }
+
+    public void setX(double x) { this.x = x; }
+    public void setY(double y) { this.y = y; }
+}
+
+// src/main/java/com/example/swarm/model/Drone.java
+package com.example.swarm.model;
+
+public class Drone {
+    private int id;
+    private Coordinates position;
+
+    public Drone(int id, Coordinates position) {
+        this.id = id;
+        this.position = position;
+    }
+
+    public int getId() { return id; }
+    public Coordinates getPosition() { return position; }
+    public void setPosition(Coordinates position) { this.position = position; }
+}
+
+// src/main/java/com/example/swarm/model/Target.java
+package com.example.swarm.model;
+
+public class Target {
+    private int id;
+    private String type;
+    private int priority;
+    private double killProbability;
+    private boolean neutralized;
+    private Coordinates location;
+
+    public Target(int id, String type, int priority, Coordinates location) {
+        this.id = id;
+        this.type = type;
+        this.priority = priority;
+        this.location = location;
+    }
+
+    public int getId() { return id; }
+    public String getType() { return type; }
+    public int getPriority() { return priority; }
+    public double getKillProbability() { return killProbability; }
+    public boolean isNeutralized() { return neutralized; }
+    public Coordinates getLocation() { return location; }
+
+    public void setKillProbability(double killProbability) {
+        this.killProbability = killProbability;
+    }
+
+    public void setNeutralized(boolean neutralized) {
+        this.neutralized = neutralized;
+    }
+}
+
+// src/main/java/com/example/swarm/model/TransactionType.java
+package com.example.swarm.model;
+
+public enum TransactionType {
+    CREATE_DRONE,
+    CREATE_TARGET
+}
+
+// src/main/java/com/example/swarm/model/Transaction.java
+package com.example.swarm.model;
+
+public class Transaction {
+    private TransactionType type;
+    private int id;
+    private Coordinates coordinates;
+    private int priority;      // for targets
+    private String targetType; // for targets
+
+    public Transaction(TransactionType type, int id, Coordinates coordinates,
+                       int priority, String targetType) {
+        this.type = type;
+        this.id = id;
+        this.coordinates = coordinates;
+        this.priority = priority;
+        this.targetType = targetType;
+    }
+
+    public TransactionType getType() { return type; }
+    public int getId() { return id; }
+    public Coordinates getCoordinates() { return coordinates; }
+    public int getPriority() { return priority; }
+    public String getTargetType() { return targetType; }
+}
+
+// src/main/java/com/example/swarm/model/Mission.java
+package com.example.swarm.model;
+
+import java.util.List;
+
+public class Mission {
+    private String name;
+    private List<Target> targets;
+
+    public Mission(String name, List<Target> targets) {
+        this.name = name;
+        this.targets = targets;
+    }
+
+    public String getName() { return name; }
+    public List<Target> getTargets() { return targets; }
+}
+
+// src/main/java/com/example/swarm/model/DroneSwarm.java
+package com.example.swarm.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class DroneSwarm {
+    private final List<Drone> drones = new ArrayList<>();
+    private final List<Target> targets = new ArrayList<>();
+    private double cumulativeKillProbability;
+
+    public void initializeFromTransactions(List<Transaction> transactions) {
+        drones.clear();
+        targets.clear();
+        for (Transaction tx : transactions) {
+            switch (tx.getType()) {
+                case CREATE_DRONE -> drones.add(new Drone(tx.getId(), tx.getCoordinates()));
+                case CREATE_TARGET -> targets.add(new Target(
+                        tx.getId(),
+                        tx.getTargetType(),
+                        tx.getPriority(),
+                        tx.getCoordinates()));
+            }
+        }
+    }
+
+    public void executeSwarmOperation() {
+        // Simple placeholder: move each drone towards the nearest target
+        for (Drone d : drones) {
+            Target nearest = targets.stream()
+                    .filter(t -> !t.isNeutralized())
+                    .min((t1, t2) -> Double.compare(
+                            distance(d.getPosition(), t1.getLocation()),
+                            distance(d.getPosition(), t2.getLocation())))
+                    .orElse(null);
+            if (nearest != null) {
+                d.setPosition(nearest.getLocation());
+            }
+        }
+    }
+
+    public void calculateKillProbability() {
+        Random rand = new Random();
+        for (Target t : targets) {
+            double p = Math.min(1.0, 0.25 + 0.1 * t.getPriority() + rand.nextDouble() * 0.15);
+            t.setKillProbability(p);
+        }
+        cumulativeKillProbability = 1.0;
+        for (Target t : targets) {
+            cumulativeKillProbability *= (1.0 - t.getKillProbability());
+        }
+        cumulativeKillProbability = 1.0 - cumulativeKillProbability;
+    }
+
+    public boolean simulateMissionOutcome() {
+        Random rand = new Random();
+        boolean allNeutralized = true;
+        for (Target t : targets) {
+            boolean neutralized = rand.nextDouble() <= t.getKillProbability();
+            t.setNeutralized(neutralized);
+            if (!neutralized) {
+                allNeutralized = false;
+            }
+        }
+        return allNeutralized;
+    }
+
+    public List<Target> getTargets() { return targets; }
+    public double getCumulativeKillProbability() { return cumulativeKillProbability; }
+
+    private double distance(Coordinates a, Coordinates b) {
+        double dx = a.getX() - b.getX();
+        double dy = a.getY() - b.getY();
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+}
+
+// src/main/java/com/example/swarm/util/SampleDataGenerator.java
+package com.example.swarm.util;
+
+import com.example.swarm.model.*;
+
+import java.util.List;
+
+public class SampleDataGenerator {
+
+    public static List<Transaction> generateSampleTransactions() {
+        return List.of(
+                new Transaction(TransactionType.CREATE_DRONE, 1, new Coordinates(0, 0), 0, null),
+                new Transaction(TransactionType.CREATE_DRONE, 2, new Coordinates(10, 10), 0, null),
+                new Transaction(TransactionType.CREATE_DRONE, 3, new Coordinates(-5, -5), 0, null),
+                new Transaction(TransactionType.CREATE_DRONE, 4, new Coordinates(-8, -8), 0, null),
+                new Transaction(TransactionType.CREATE_DRONE, 5, new Coordinates(-3, -3), 0, null),
+
+                new Transaction(TransactionType.CREATE_TARGET, 101, new Coordinates(50, 50), 3, "Radar"),
+                new Transaction(TransactionType.CREATE_TARGET, 102, new Coordinates(60, 20), 2, "SAM"),
+                new Transaction(TransactionType.CREATE_TARGET, 103, new Coordinates(-40, -30), 1, "Artillery")
+                new Transaction(TransactionType.CREATE_TARGET, 104, new Coordinates(40, 30), 4, "Shelter"),
+                new Transaction(TransactionType.CREATE_TARGET, 105, new Coordinates(45, 45), 5, "office")
+        );
+    }
+}
+
+// src/main/java/com/example/swarm/MainApp.java
+package com.example.swarm;
+
+import com.example.swarm.model.DroneSwarm;
+import com.example.swarm.model.Target;
+import com.example.swarm.util.SampleDataGenerator;
+import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+public class MainApp extends Application {
+
+    private DroneSwarm swarm;
+    private ObservableList<Target> targetData;
+    private Label cumulativeLabel;
+
+    @Override
+    public void start(Stage primaryStage) {
+        swarm = new DroneSwarm();
+        swarm.initializeFromTransactions(SampleDataGenerator.generateSampleTransactions());
+
+        targetData = FXCollections.observableArrayList(swarm.getTargets());
+
+        TableView<Target> table = new TableView<>(targetData);
+        TableColumn<Target, Integer> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("id"));
+
+        TableColumn<Target, String> typeCol = new TableColumn<>("Type");
+        typeCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("type"));
+
+        TableColumn<Target, Integer> priCol = new TableColumn<>("Priority");
+        priCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("priority"));
+
+        TableColumn<Target, Double> probCol = new TableColumn<>("Kill Probability");
+        probCol.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("killProbability"));
+        probCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%.2f%%", item * 100));
+                }
+            }
+        });
+
+        table.getColumns().addAll(idCol, typeCol, priCol, probCol);
+        table.setPrefHeight(250);
+
+        Button runBtn = new Button("Run Simulation");
+        cumulativeLabel = new Label("Cumulative Kill Probability: N/A");
+
+        runBtn.setOnAction(e -> runSimulation());
+
+        VBox root = new VBox(10, table, runBtn, cumulativeLabel);
+        root.setPadding(new Insets(15));
+
+        primaryStage.setTitle("SwarmDrone Simulation System");
+        primaryStage.setScene(new Scene(root, 600, 400));
+        primaryStage.show();
+    }
+
+    private void runSimulation() {
+        swarm.executeSwarmOperation();
+        swarm.calculateKillProbability();
+        swarm.simulateMissionOutcome();
+
+        targetData.setAll(swarm.getTargets());
+        cumulativeLabel.setText(String.format("Cumulative Kill Probability: %.2f%%",
+                swarm.getCumulativeKillProbability() * 100));
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
